@@ -445,9 +445,20 @@ if ($alltables)
 	}
 
 	$dbi_s = $dbi_h->prepare(q{
-	                         DELETE FROM selectors
-	                         WHERE id NOT IN (SELECT DISTINCT selector FROM signatures)
-	                                 AND id NOT IN (SELECT DISTINCT selector FROM arcseals)
+				DELETE
+					selectors
+				FROM
+					selectors
+				LEFT JOIN
+					(	
+						SELECT selector FROM signatures
+						UNION
+						SELECT selector FROM arcseals
+					) as x
+				ON
+					selectors.id = x.selector 
+				WHERE
+					x.selector IS NULL
 	});
 	$rows = $dbi_s->execute();
 	if (!$rows)
@@ -475,13 +486,28 @@ if ($alltables)
 	}
 
 	$dbi_s = $dbi_h->prepare(q{
-	                         DELETE FROM domains
-	                         WHERE id NOT IN (SELECT DISTINCT domain FROM requests)
-	                                 AND id NOT IN (SELECT DISTINCT from_domain FROM messages)
-	                                 AND id NOT IN (SELECT DISTINCT env_domain FROM messages)
-	                                 AND id NOT IN (SELECT DISTINCT policy_domain FROM messages)
-	                                 AND id NOT IN (SELECT DISTINCT domain FROM signatures)
-	                                 AND id NOT IN (SELECT DISTINCT domain FROM arcseals)
+				DELETE
+					domains
+				FROM
+					domains
+				LEFT JOIN
+					(	
+						SELECT domain as d FROM requests
+						UNION
+						SELECT from_domain as d FROM messages
+						UNION
+						SELECT env_domain as d FROM messages
+						UNION
+						SELECT policy_domain as d FROM messages
+						UNION
+						SELECT domain as d FROM signatures
+						UNION
+						SELECT domain as d FROM arcseals
+					) as x
+				ON
+					domains.id = x.d
+				WHERE
+					x.d IS NULL
 	});
 	$rows = $dbi_s->execute();
 	if (!$rows)
@@ -508,8 +534,20 @@ if ($alltables)
 		print STDERR "$progname: expiring unneeded IP data\n";
 	}
 
-	$dbi_s = $dbi_h->prepare("DELETE FROM ipaddr WHERE id NOT IN
-		(SELECT DISTINCT ip FROM messages)");
+	$dbi_s = $dbi_h->prepare(q{
+				DELETE
+					ipaddr
+				FROM
+					ipaddr
+				LEFT JOIN
+					(
+						SELECT DISTINCT ip FROM messages
+					) as x
+				ON
+					ipaddr.id = x.ip
+				WHERE
+					x.ip IS NULL
+	});
 	$rows = $dbi_s->execute();
 	if (!$rows)
 	{
@@ -535,8 +573,20 @@ if ($alltables)
 		print STDERR "$progname: expiring unneeded reporter data\n";
 	}
 
-	$dbi_s = $dbi_h->prepare("DELETE FROM reporters WHERE id NOT IN
-		(SELECT DISTINCT reporter FROM messages)");
+	$dbi_s = $dbi_h->prepare(q{
+				DELETE
+					reporters
+				FROM
+					reporters
+				LEFT JOIN
+					(
+						SELECT DISTINCT reporter FROM messages
+					) as x
+				ON
+					reporters.id = x.reporter
+				WHERE
+					x.reporter IS NULL
+	});
 	$rows = $dbi_s->execute();
 	if (!$rows)
 	{
